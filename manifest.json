@@ -1,0 +1,16 @@
+{
+  "manifest_version": 3,
+  "name": "NoteAnchor",
+  "version": "1.0",
+  "description": "Anchor your thoughts to the web! Instantly save and recall notes for any URL.",
+  "permissions": [
+    "tabs",
+    "storage"
+  ],
+  "action": {
+    "default_popup": "popup.html",
+    "default_icon": {
+      "16": "icons/note-16.png"
+    }
+  }
+}

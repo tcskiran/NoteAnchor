@@ -1,0 +1,27 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Site Notes</title>
+    <link rel="stylesheet" href="style.css" />
+  </head>
+  <body>
+    <select id="siteList">
+      <option value="">-- New URL --</option>
+    </select>
+    <textarea id="noteArea" placeholder="Write your notes here..."></textarea>
+    <button id="saveNote">Save Note</button>
+    <button id="deleteNote">Delete Note</button>
+
+    <hr />
+    <!-- Divider for visual separation -->
+
+    <h3>Manage Notes:</h3>
+    <button id="exportNotes">Export Notes</button>
+    <input type="file" id="importFile" style="display: none" />
+    <button id="importNotes">Import Notes</button>
+
+    <script src="popup.js"></script>
+  </body>
+</html>
