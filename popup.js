@@ -1,6 +1,7 @@
 // DOM Element References
 const siteList = document.getElementById('siteList');
 const noteArea = document.getElementById('noteArea');
+const openLinkButton = document.getElementById('openLink');
 
 // Load all saved site URLs into the dropdown on popup load
 chrome.storage.local.get(null, (items) => {
@@ -18,6 +19,25 @@ siteList.addEventListener('change', () => {
   chrome.storage.local.get(url, (result) => {
     noteArea.value = result[url] || '';
   });
+  // Disable open link button if the link is same as current URL or if the URL is new
+  chrome.tabs.query({ active: true, currentWindow: true }, (tabs) => {
+    const currentUrl = tabs[0].url;
+    if (!url || url == currentUrl) {
+      openLinkButton.setAttribute('disabled', 'disabled');
+    } else {
+      openLinkButton.removeAttribute('disabled');
+    }
+  });
+});
+
+// Open URL in new tab when clicked
+document.getElementById('openLink').addEventListener('click', function () {
+  const selectedURL = document.getElementById('siteList').value;
+
+  // Check if a URL is selected from the dropdown
+  if (selectedURL) {
+    chrome.tabs.create({ url: selectedURL }); // This will open the URL in a new tab
+  }
 });
 
 document.getElementById('saveNote').addEventListener('click', () => {
@@ -53,6 +73,7 @@ chrome.tabs.query({ active: true, currentWindow: true }, (tabs) => {
       chrome.storage.local.get(url, (result) => {
         noteArea.value = result[url] || '';
       });
+      openLinkButton.setAttribute('disabled', 'disabled'); // Button disabled as the URL selected is same as current URL
       break;
     }
   }
