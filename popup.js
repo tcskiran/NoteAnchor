@@ -73,7 +73,6 @@ chrome.tabs.query({ active: true, currentWindow: true }, (tabs) => {
       chrome.storage.local.get(url, (result) => {
         noteArea.value = result[url] || '';
       });
-      openLinkButton.setAttribute('disabled', 'disabled'); // Button disabled as the URL selected is same as current URL
       break;
     }
   }
