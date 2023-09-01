@@ -2,6 +2,33 @@
 const siteList = document.getElementById('siteList');
 const noteArea = document.getElementById('noteArea');
 const openLinkButton = document.getElementById('openLink');
+const fileInput = document.getElementById('importFile');
+
+// Utility Functions
+// Used callback so that there would be no use of async/await
+function getCurrentTabUrl(callback) {
+  chrome.tabs.query({ active: true, currentWindow: true }, (tabs) => {
+    callback(tabs[0].url);
+  });
+}
+
+// Set the state of openURL button
+function manageOpenLinkButtonState(selectedUrl) {
+  getCurrentTabUrl((currentUrl) => {
+    if (!selectedUrl || selectedUrl == currentUrl) {
+      openLinkButton.setAttribute('disabled', 'disabled');
+    } else {
+      openLinkButton.removeAttribute('disabled');
+    }
+  });
+}
+
+// Retrieve note of specific url
+function loadData(url, callback) {
+  chrome.storage.local.get(url, (result) => {
+    callback(result[url]);
+  });
+}
 
 // Load all saved site URLs into the dropdown on popup load
 chrome.storage.local.get(null, (items) => {
@@ -15,37 +42,27 @@ chrome.storage.local.get(null, (items) => {
 
 // Display note of the selected site
 siteList.addEventListener('change', () => {
-  const url = siteList.value;
-  chrome.storage.local.get(url, (result) => {
-    noteArea.value = result[url] || '';
+  const selectedUrl = siteList.value;
+  loadData(selectedUrl, (data) => {
+    noteArea.value = data || '';
   });
-  // Disable open link button if the link is same as current URL or if the URL is new
-  chrome.tabs.query({ active: true, currentWindow: true }, (tabs) => {
-    const currentUrl = tabs[0].url;
-    if (!url || url == currentUrl) {
-      openLinkButton.setAttribute('disabled', 'disabled');
-    } else {
-      openLinkButton.removeAttribute('disabled');
-    }
-  });
+  // Need to check here as this indicates that a new option is selected from dropdown
+  manageOpenLinkButtonState(selectedUrl);
 });
 
 // Open URL in new tab when clicked
-document.getElementById('openLink').addEventListener('click', function () {
-  const selectedURL = document.getElementById('siteList').value;
-
-  // Check if a URL is selected from the dropdown
-  if (selectedURL) {
-    chrome.tabs.create({ url: selectedURL }); // This will open the URL in a new tab
-  }
+openLinkButton.addEventListener('click', () => {
+  const selectedURL = siteList.value;
+  chrome.tabs.create({ url: selectedURL });
 });
 
+// Save notes
 document.getElementById('saveNote').addEventListener('click', () => {
   let url = siteList.value;
-  if (!url || url === undefined) {
-    chrome.tabs.query({ active: true, currentWindow: true }, (tabs) => {
-      url = tabs[0].url;
-      saveNote(url);
+
+  if (!url) {
+    getCurrentTabUrl((currentUrl) => {
+      saveNote(currentUrl);
     });
   } else {
     saveNote(url);
@@ -62,29 +79,27 @@ function saveNote(url) {
   });
 }
 
-// Set the dropdown value to the current site when popup is opened
-chrome.tabs.query({ active: true, currentWindow: true }, (tabs) => {
-  const url = tabs[0].url;
-
-  // Show the URL if it is already saved
-  for (let i = 0; i < siteList.options.length; i++) {
-    if (siteList.options[i].value === url) {
-      siteList.value = url;
-      chrome.storage.local.get(url, (result) => {
-        noteArea.value = result[url] || '';
-      });
-      break;
-    }
-  }
+// Set the dropdown value to the current site, load the saved data when popup is opened
+getCurrentTabUrl((currentUrl) => {
+  const optionValues = Array.from(siteList.options).map(
+    (option) => option.value
+  );
+  siteList.value = optionValues.includes(currentUrl) ? currentUrl : ''; // Showing URL only if it is saved before
+  console.log(currentUrl);
+  console.log(siteList.value);
+  loadData(currentUrl, (data) => {
+    noteArea.value = data || '';
+  });
+  manageOpenLinkButtonState(currentUrl);
 });
 
-// Add an event listener for the delete button
+// Delete notes
 document.getElementById('deleteNote').addEventListener('click', () => {
   let url = siteList.value;
+
   if (!url) {
-    chrome.tabs.query({ active: true, currentWindow: true }, (tabs) => {
-      url = tabs[0].url;
-      deleteNote(url);
+    getCurrentTabUrl((currentUrl) => {
+      deleteNote(currentUrl);
     });
   } else {
     deleteNote(url);
@@ -95,7 +110,6 @@ function deleteNote(url) {
   chrome.storage.local.remove(url, () => {
     alert('Note deleted!');
 
-    // Remove the URL from the dropdown list
     for (let i = 0; i < siteList.options.length; i++) {
       if (siteList.options[i].value === url) {
         siteList.remove(i);
@@ -103,17 +117,16 @@ function deleteNote(url) {
       }
     }
 
-    // Clear the textarea
     noteArea.value = '';
   });
 }
 
+// Export notes
 document.getElementById('exportNotes').addEventListener('click', () => {
   chrome.storage.local.get(null, (data) => {
     const blob = new Blob([JSON.stringify(data)], { type: 'application/json' });
     const url = URL.createObjectURL(blob);
 
-    // Create a link element to start download
     const a = document.createElement('a');
     a.style.display = 'none';
     a.href = url;
@@ -121,22 +134,21 @@ document.getElementById('exportNotes').addEventListener('click', () => {
     document.body.appendChild(a);
     a.click();
 
-    // Cleanup
     window.URL.revokeObjectURL(url);
     document.body.removeChild(a);
   });
 });
 
+// Import notes
 document.getElementById('importNotes').addEventListener('click', () => {
-  const fileInput = document.getElementById('importFile');
   fileInput.click();
 
   fileInput.addEventListener('change', () => {
     const file = fileInput.files[0];
+
     if (file) {
       const reader = new FileReader();
       reader.readAsText(file, 'UTF-8');
-
       reader.onload = (event) => {
         try {
           const data = JSON.parse(event.target.result);
