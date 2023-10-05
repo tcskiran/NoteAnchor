@@ -1,3 +1,13 @@
+# Features:
+
+1. Save notes specific to the current website you're visiting.
+
+1. View notes for previously visited websites from a dropdown.
+
+1. Open stored URLs directly from the extension.
+
+1. Export and import your notes to and from a JSON file.
+
 # Steps to run the extension
 
 1. Clone this repository
